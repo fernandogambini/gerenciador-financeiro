@@ -51,7 +51,36 @@ $totalDespesas = $resumo['tot_despesas'];
 
 // Calcula o saldo.
 $saldo = $totalReceitas - $totalDespesas;
+
+/*
+ * Consulta as movimentações de agosto de 2026.
+ *
+ * Estamos reaproveitando uma consulta SQL que
+ * já testamos diretamente no MySQL.
+ */
+$sqlMovimentacoes = "
+    SELECT
+        categoria.nome AS categoria_nome,
+        movimentacao.valor,
+        movimentacao.data,
+        movimentacao.descricao,
+        categoria.tipo
+    FROM movimentacao
+    JOIN categoria
+        ON categoria.id = movimentacao.id_categoria
+    WHERE movimentacao.data
+        BETWEEN '2026-08-01' AND '2026-08-31'
+    ORDER BY movimentacao.data ASC
+";
+
+$stmtMovimentacoes = $connection->query($sqlMovimentacoes);
+
+$movimentacoes = $stmtMovimentacoes->fetchAll();
 ?>
+
+
+
+
 
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -219,64 +248,49 @@ $saldo = $totalReceitas - $totalDespesas;
 
                 <div class="transaction-list">
 
-                    <!-- Receita -->
-                    <div class="transaction-item">
+                    <?php foreach ($movimentacoes as $movimentacao): ?>
 
-                        <div>
-                            <strong>Salário de agosto</strong>
-                            <span>05/08/2026 · Salário</span>
+                        <?php
+                        /*
+                        * Define se a movimentação será exibida
+                        * como receita ou despesa.
+                        */
+                        $classeTipo = $movimentacao['tipo'] === 'receita'
+                            ? 'transaction-income'
+                            : 'transaction-expense';
+
+                        /*
+                        * Define o sinal exibido no valor.
+                        */
+                        $sinal = $movimentacao['tipo'] === 'receita'
+                            ? '+'
+                            : '-';
+                        ?>
+
+                        <div class="transaction-item">
+
+                            <div>
+
+                                <strong>
+                                    <?= htmlspecialchars($movimentacao['descricao']) ?>
+                                </strong>
+
+                                <span>
+                                    <?= date('d/m/Y', strtotime($movimentacao['data'])) ?>
+                                    ·
+                                    <?= htmlspecialchars($movimentacao['categoria_nome']) ?>
+                                </span>
+
+                            </div>
+
+                            <strong class="<?= $classeTipo ?>">
+                                <?= $sinal ?>
+                                R$ <?= number_format($movimentacao['valor'], 2, ',', '.') ?>
+                            </strong>
+
                         </div>
 
-                        <strong class="transaction-income">
-                            + R$ 5.000,00
-                        </strong>
-
-                    </div>
-
-
-                    <!-- Despesa -->
-                    <div class="transaction-item">
-
-                        <div>
-                            <strong>Compras do mês</strong>
-                            <span>07/08/2026 · Mercado</span>
-                        </div>
-
-                        <strong class="transaction-expense">
-                            - R$ 350,00
-                        </strong>
-
-                    </div>
-
-
-                    <!-- Despesa -->
-                    <div class="transaction-item">
-
-                        <div>
-                            <strong>Abastecimento</strong>
-                            <span>09/08/2026 · Gasolina</span>
-                        </div>
-
-                        <strong class="transaction-expense">
-                            - R$ 200,00
-                        </strong>
-
-                    </div>
-
-
-                    <!-- Receita -->
-                    <div class="transaction-item">
-
-                        <div>
-                            <strong>Trabalho freelance</strong>
-                            <span>15/08/2026 · Freelance</span>
-                        </div>
-
-                        <strong class="transaction-income">
-                            + R$ 800,00
-                        </strong>
-
-                    </div>
+                    <?php endforeach; ?>
 
                 </div>
 
