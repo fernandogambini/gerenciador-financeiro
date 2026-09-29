@@ -76,6 +76,22 @@ $sqlMovimentacoes = "
 $stmtMovimentacoes = $connection->query($sqlMovimentacoes);
 
 $movimentacoes = $stmtMovimentacoes->fetchAll();
+
+$sqlCategorias = "
+    SELECT 
+        categoria.nome, 
+        SUM(movimentacao.valor) as total
+    FROM categoria 
+    JOIN movimentacao 
+        ON categoria.id = movimentacao.id_categoria
+    WHERE categoria.tipo = 'despesa' AND movimentacao.data 
+        BETWEEN '2026-08-01' AND '2026-08-31' 
+    GROUP BY categoria.nome
+    ";
+
+$stmtCategorias = $connection->query($sqlCategorias);
+
+$categorias = $stmtCategorias->fetchAll();
 ?>
 
 
@@ -209,24 +225,27 @@ $movimentacoes = $stmtMovimentacoes->fetchAll();
 
                 <div class="category-list">
 
-                    <div class="category-item">
-                        <div>
-                            <strong>Mercado</strong>
-                            <span>Alimentação</span>
+                    <?php foreach ($categorias as $categoria): ?>
+
+                        <div class="category-item">
+
+                            <div>
+                                <strong>
+                                    <?= htmlspecialchars($categoria['nome']) ?>
+                                </strong>
+
+                                <span>
+                                    Despesa
+                                </span>
+                            </div>
+
+                            <strong>
+                                R$ <?= number_format($categoria['total'], 2, ',', '.') ?>
+                            </strong>
+
                         </div>
 
-                        <strong>R$ 350,00</strong>
-                    </div>
-
-
-                    <div class="category-item">
-                        <div>
-                            <strong>Gasolina</strong>
-                            <span>Transporte</span>
-                        </div>
-
-                        <strong>R$ 200,00</strong>
-                    </div>
+                    <?php endforeach; ?>
 
                 </div>
 
