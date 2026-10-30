@@ -1,4 +1,22 @@
 <?php
+require_once __DIR__ . '/../../src/Database/Connection.php';
+
+// Cria a conexão com o banco.
+$connection = Connection::getConnection();
+
+$sql = "
+    SELECT id, nome, tipo
+    FROM categoria
+    ORDER BY nome";
+
+// Executa a consulta.
+$stmt = $connection->query($sql);
+
+
+// Como nossa consulta retorna várias linhas (uma para cada categoria),
+// utilizamos fetchAll() para recuperar todos os resultados.
+$categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -8,33 +26,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = $_POST['data'];
     $categoria = $_POST['categoria'];
 
+    $erros = [];
+    
+
     if ($tipo === 'receita' || $tipo === 'despesa'){
-        echo "Tipo válido";
+
     }else{
-        echo "tipo inválido";
+        $erros[] = "Tipo inválido";
     }
 
     if(is_numeric($valor) && $valor>0){
-        echo "Valor válido";
+        
     }else{
-        echo "Valor inválido";
+        $erros[] = "O valor precisa ser maior que zero";
     }
 
     if(trim($descricao) !== ("")){
-        echo "Descrição válida";
+        
     }else{
-        echo "Descrição inválida";
+        $erros[] = "Descrição inválida";
     }
-
+    
     $partes = explode("-", $data);
     if(count($partes) === 3 && 
-    ctype_digit($partes[0]) && strlen($partes[0]) === 4 && 
+    ctype_digit($partes[0]) && strlen($partes[0]) === 4 && (int)$partes[0]>= 1900 && (int)$partes[0] <= 2100 &&
     ctype_digit($partes[1]) &&
     ctype_digit($partes[2]) &&
     checkdate((int)$partes[1], (int)$partes[2], (int)$partes[0])){
-        echo "Data válida";
+        
     }else{
-        echo "Data inválida";
+        $erros[] = "Data inválida";
+    }
+
+    if(!empty($erros)){
+        foreach($erros as $erro){
+            echo "- " . $erro . "<br>";
+        }
+    }else{
+        echo "Não existem erros";
+    }
+
+    // Verifica se a categoria informada existe no banco de dados.
+    $categoriaValida = false;
+
+    foreach($categorias as $item){
+        if($item['id'] === (int)$categoria && $item['tipo'] === $tipo){
+            $categoriaValida = true;
+        }
+    }
+    if($categoriaValida === false){
+        $erros[] = "Categoria inválida ou imcompatível com o tipo selecionado";
     }
 }
 
@@ -59,23 +100,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <label for="categoria">Defina a categoria: </label>
     <select id="categoria" name="categoria">
-        <option value="salario">Salário</option>
-        <option value="freelance">Freelance</option>
-        <option value="aluguel">Aluguel</option>
-        <option value="condominio">Condomínio</option>
-        <option value="energia">Energia</option>
-        <option value="agua">Água</option>
-        <option value="gas">Gás</option>
-        <option value="celular">Celular</option>
-        <option value="internet">Internet</option>
-        <option value="gasolina">Gasolina</option>
-        <option value="alimentacao">Alimentação</option>
-        <option value="mercado">Mercado</option>
-        <option value="saude">Saúde</option>
-        <option value="lazer">Lazer</option>
+        <?php foreach($categorias as $categoria): ?>
+            <option value="<?= (int) $categoria['id'] ?>"
+                data-tipo="<?= htmlspecialchars($categoria['tipo'], ENT_QUOTES, 'UTF-8') ?>"
+            >
+                <?= htmlspecialchars($categoria['nome'], ENT_QUOTES, 'UTF-8') ?>
+            </option>
+        <?php endforeach; ?>
     </select>
 
     <button type="submit">Salvar</button>
 
 
 </form>
+
+<!-- Script responsável pelo filtro dinâmico de categorias -->
+<script src="/assets/js/movimentacao.js"></script>
