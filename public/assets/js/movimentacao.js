@@ -1,28 +1,41 @@
-// Localiza os campos de tipo e categoria.
-    const tipoSelect = document.getElementById('tipo');
-    const categoriaSelect = document.getElementById('categoria');
+// Localiza os campos do formulário.
+const tipoSelect = document.getElementById('tipo');
+const categoriaSelect = document.getElementById('categoria');
 
-    // Guarda uma cópia de todas as opções originais.
-    const todasCategorias = Array.from(categoriaSelect.options);
+// Guarda todas as categorias originais.
+const todasCategorias = Array.from(categoriaSelect.options);
 
-    // Atualiza as categorias conforme o tipo selecionado.
-    function filtrarCategorias() {
-        const tipoSelecionado = tipoSelect.value;
+// Filtra as categorias conforme o tipo selecionado.
+function filtrarCategorias() {
+    const tipoSelecionado = tipoSelect.value;
 
-        // Seleciona apenas as categorias do tipo correspondente.
-        const categoriasFiltradas = todasCategorias.filter(function(opcao) {
-            return opcao.dataset.tipo === tipoSelecionado;
-        });
+    // Guarda a categoria selecionada anteriormente.
+    const categoriaAnterior = categoriaSelect.value;
 
-        // Atualiza as opções disponíveis no campo.
-        categoriaSelect.replaceChildren(...categoriasFiltradas);
+    // Seleciona apenas as categorias correspondentes ao tipo.
+    const categoriasFiltradas = todasCategorias.filter(function(opcao) {
+        return opcao.dataset.tipo === tipoSelecionado;
+    });
 
-        // Seleciona a primeira categoria da lista filtrada.
+    // Atualiza as opções disponíveis.
+    categoriaSelect.replaceChildren(...categoriasFiltradas);
+
+    // Verifica se a categoria anterior ainda está disponível.
+    const categoriaExiste = categoriasFiltradas.some(function(opcao) {
+        return opcao.value === categoriaAnterior;
+    });
+
+    if (categoriaExiste) {
+        // Mantém a categoria selecionada anteriormente.
+        categoriaSelect.value = categoriaAnterior;
+    } else {
+        // Caso contrário, seleciona a primeira categoria disponível.
         categoriaSelect.selectedIndex = 0;
     }
+}
 
-    // Executa o filtro sempre que o usuário alterar o tipo.
-    tipoSelect.addEventListener('change', filtrarCategorias);
+// Atualiza o filtro quando o usuário altera o tipo.
+tipoSelect.addEventListener('change', filtrarCategorias);
 
-    // Executa o filtro quando a página é carregada.
-    filtrarCategorias();
+// Aplica o filtro ao carregar a página.
+filtrarCategorias();
