@@ -114,6 +114,11 @@ if(isset($_SESSION['mensagem_sucesso'])) {
     <?php endforeach; ?>
 <?php endif; ?>
 
+<!-- Retorna para o dashboard principal -->
+<p>
+    <a href="/">← Voltar ao dashboard</a>
+</p>
+
 <form action="create.php" method="POST">
 
     <label for="tipo">Tipo da transação:</label>

@@ -81,6 +81,12 @@ button {
 
     padding: 12px 18px;
     border-radius: 8px;
+
+    /* Permite que o link tenha aparência de botão. */
+    display: inline-block;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
 }
 
 
@@ -333,5 +339,111 @@ button {
         align-items: flex-start;
         flex-direction: column;
     }
+
+    
+    /* FILTRO DE PERÍODO */
+
+    .period-filter {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 25px;
+    }
+
+    /* Garante que o painel possa ser ocultado */
+    .period-filter[hidden],
+    .period-error[hidden] {
+        display: none;
+    }
+
+    .period-filter h3 {
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .filter-description {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Atalhos */
+    .period-shortcuts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .period-shortcut {
+        padding: 10px 14px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        color: #374151;
+    }
+
+    .period-shortcut:hover {
+        background: #e5e7eb;
+    }
+
+    .period-shortcut.active {
+        background: #111827;
+        color: #ffffff;
+        border-color: #111827;
+    }
+
+    /* Calendários */
+    .period-dates {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .period-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .period-field label {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .period-field input {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font: inherit;
+    }
+
+    /* Mensagem de erro */
+    .period-error {
+        color: #b91c1c;
+        font-size: 14px;
+        margin-top: 12px;
+    }
+
+    /* Ações */
+    .period-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    /* Responsividade */
+    @media (max-width: 600px) {
+        .period-dates {
+            grid-template-columns: 1fr;
+        }
+
+        .period-actions .btn-primary {
+            width: 100%;
+        }
+    }
+
 
 }

@@ -4,6 +4,72 @@ require_once __DIR__ . '/../src/Database/Connection.php';
 // Cria a conexão com o banco.
 $connection = Connection::getConnection();
 
+$dataInicio = $_GET['data_inicio'] ?? date('Y-m-01');
+$dataFim = $_GET['data_fim'] ?? date('Y-m-t');
+
+if(!(is_string($dataInicio))){
+    $dataInicio = date('Y-m-01');
+}
+
+if(!(is_string($dataFim))){
+    $dataFim = date("Y-m-t");
+}
+
+$inicioObjeto = DateTimeImmutable::createFromFormat('!Y-m-d', $dataInicio);
+$fimObjeto = DateTimeImmutable::createFromFormat('!Y-m-d', $dataFim);
+
+$inicioValido = $inicioObjeto !== false && $inicioObjeto->format('Y-m-d') === $dataInicio;
+$fimValido = $fimObjeto !== false && $fimObjeto->format('Y-m-d') === $dataFim;
+
+if(!$inicioValido || !$fimValido){
+    $dataInicio = date('Y-m-01');
+    $dataFim = date('Y-m-t');
+}
+
+if($dataInicio > $dataFim){
+    $dataInicio = date('Y-m-01');
+    $dataFim = date('Y-m-t');
+}
+
+$inicioFormatado = (new DateTimeImmutable($dataInicio))->format('d/m/Y');
+$fimFormatado = (new DateTimeImmutable($dataFim))->format('d/m/Y');
+$data = new DateTimeImmutable($dataInicio);
+$primeiroDia = $data->format('Y-m-01');
+$ultimoDia = $data->format('Y-m-t');
+$mesCompleto = ($dataInicio === $primeiroDia) && ($dataFim === $ultimoDia);
+$meses = [
+    1 => 'Janeiro',
+    2 => 'Fevereiro',
+    3 => 'Março',
+    4 => 'Abril',
+    5 => 'Maio',
+    6 => 'Junho',
+    7 => 'Julho',
+    8 => 'Agosto',
+    9 => 'Setembro',
+    10 => 'Outubro',
+    11 => 'Novembro',
+    12 => 'Dezembro'
+];
+$nomeMes = $meses[(int)$data->format('n')];
+if(!$mesCompleto){
+    $tituloPeriodo = $inicioFormatado . " a " . $fimFormatado;
+}else{
+    $tituloPeriodo = $nomeMes . " de " . $data->format('Y');
+}
+
+$mes = $_GET['mes'] ?? date('n');
+$ano = $_GET['ano'] ?? date('Y');
+
+if(!(is_string($mes) && ctype_digit($mes) && (int)$mes >= 1 && (int)$mes <= 12)){
+    $mes = date('n');
+}
+
+if(!(is_string($ano) && ctype_digit($ano) && strlen($ano) === 4 && (int)$ano >= 1900 && (int)$ano <= 2100)){
+    $ano = date('Y');
+}
+
+
 /*
  * Consulta o resumo financeiro de agosto de 2026.
  *
@@ -35,11 +101,17 @@ $sql = "
         ON categoria.id = movimentacao.id_categoria
 
     WHERE movimentacao.data
-        BETWEEN '2026-08-01' AND '2026-08-31'
+        BETWEEN :dataInicio AND :dataFim
 ";
 
 // Executa a consulta.
-$stmt = $connection->query($sql);
+$stmt = $connection->prepare($sql);
+
+$stmt->execute([
+    ':dataInicio' => $dataInicio,
+    ':dataFim' => $dataFim
+
+]);
 
 // Como nossa consulta retorna apenas uma linha,
 // fetch() é suficiente.
@@ -69,11 +141,16 @@ $sqlMovimentacoes = "
     JOIN categoria
         ON categoria.id = movimentacao.id_categoria
     WHERE movimentacao.data
-        BETWEEN '2026-08-01' AND '2026-08-31'
+        BETWEEN :dataInicio AND :dataFim
     ORDER BY movimentacao.data ASC
 ";
 
-$stmtMovimentacoes = $connection->query($sqlMovimentacoes);
+$stmtMovimentacoes = $connection->prepare($sqlMovimentacoes);
+
+$stmtMovimentacoes->execute([
+    ':dataInicio' => $dataInicio,
+    ':dataFim' => $dataFim
+]);
 
 $movimentacoes = $stmtMovimentacoes->fetchAll();
 
@@ -85,11 +162,15 @@ $sqlCategorias = "
     JOIN movimentacao 
         ON categoria.id = movimentacao.id_categoria
     WHERE categoria.tipo = 'despesa' AND movimentacao.data 
-        BETWEEN '2026-08-01' AND '2026-08-31' 
+        BETWEEN :dataInicio AND :dataFim 
     GROUP BY categoria.nome
     ";
 
-$stmtCategorias = $connection->query($sqlCategorias);
+$stmtCategorias = $connection->prepare($sqlCategorias);
+$stmtCategorias->execute([
+    ':dataInicio' => $dataInicio,
+    ':dataFim' => $dataFim
+]);
 
 $categorias = $stmtCategorias->fetchAll();
 ?>
@@ -133,9 +214,10 @@ $categorias = $stmtCategorias->fetchAll();
                 Mais tarde ele abrirá a tela/formulário
                 para cadastrar uma nova movimentação.
             -->
-            <button type="button" class="btn-primary">
+            <!-- Acessa o formulário de cadastro de movimentações -->
+            <a href="/movimentacao/create.php" class="btn-primary">
                 + Nova movimentação
-            </button>
+            </a>
 
         </div>
     </header>
@@ -148,18 +230,93 @@ $categorias = $stmtCategorias->fetchAll();
             Estamos simulando o mês que o usuário está visualizando.
             Mais tarde isso poderá ser alterado pelo usuário.
         -->
-        <section class="period-section">
+        
+    <!-- Período exibido no dashboard -->
+    <section class="period-section">
+        <div>
+            <p class="section-label">Período</p>
+            <h2><?= htmlspecialchars($tituloPeriodo, ENT_QUOTES, 'UTF-8') ?></h2>
+        </div>
 
-            <div>
-                <p class="section-label">Período</p>
-                <h2>Agosto de 2026</h2>
+        <button
+            type="button"
+            id="toggle-periodo"
+            class="btn-secondary"
+            aria-expanded="false"
+            aria-controls="painel-periodo"
+        >
+            Alterar período
+        </button>
+    </section>
+
+    <!-- Painel de filtros, inicialmente oculto -->
+    <section id="painel-periodo" class="period-filter" hidden>
+        <form action="/" method="GET" id="form-periodo">
+
+            <h3>Selecionar período</h3>
+            <p class="filter-description">
+                Escolha um atalho ou defina um intervalo personalizado.
+            </p>
+
+            <!-- Atalhos de período -->
+            <div class="period-shortcuts">
+                <button type="button" class="period-shortcut" data-atalho="mes-atual">
+                    Este mês
+                </button>
+
+                <button type="button" class="period-shortcut" data-atalho="mes-anterior">
+                    Mês anterior
+                </button>
+
+                <button type="button" class="period-shortcut" data-atalho="ano-atual">
+                    Este ano
+                </button>
+
+                <button type="button" class="period-shortcut" data-atalho="personalizado">
+                    Personalizado
+                </button>
             </div>
 
-            <button type="button" class="btn-secondary">
-                Alterar período
-            </button>
+            <!-- Seleção manual de datas -->
+            <div class="period-dates">
+                <div class="period-field">
+                    <label for="data_inicio">Data inicial</label>
+                    <input
+                        type="date"
+                        id="data_inicio"
+                        name="data_inicio"
+                        min="1900-01-01"
+                        max="2100-12-31"
+                        required
+                    >
+                </div>
 
-        </section>
+                <div class="period-field">
+                    <label for="data_fim">Data final</label>
+                    <input
+                        type="date"
+                        id="data_fim"
+                        name="data_fim"
+                        min="1900-01-01"
+                        max="2100-12-31"
+                        required
+                    >
+                </div>
+            </div>
+
+            <p id="erro-periodo" class="period-error" role="alert" hidden>
+                A data final não pode ser anterior à inicial.
+            </p>
+
+            <div class="period-actions">
+                <button type="submit" class="btn-primary">
+                    Aplicar período
+                </button>
+            </div>
+
+        </form>
+    </section>
+
 
 
         <!--
@@ -318,7 +475,7 @@ $categorias = $stmtCategorias->fetchAll();
         </section>
 
     </main>
-
+    <script src="/assets/js/periodo.js"></script>
 </body>
 
 </html>
